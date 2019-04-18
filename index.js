@@ -1,5 +1,6 @@
 const Harvest = require('harvest').default;
 const { IncomingWebhook } = require('@slack/webhook');
+const moment = require('moment');
 const config = require('./config.json');
 
 const harvest = new Harvest({
@@ -39,7 +40,7 @@ const getColor = (hours, billable) => {
 
 const getTimeEntries = async (user) => {
   return harvest.timeEntries
-  .list({ user_id: user.id, from: new Date(2019, 3, 8), to: new Date(2019, 3, 14) })
+  .list({ user_id: user.id, from: new Date(2019, 3, 15), to: new Date(2019, 3, 22) })
   .then((response) => {
     const time_entries = response.time_entries;
     let userStats = "";
@@ -54,8 +55,8 @@ const getTimeEntries = async (user) => {
 
     let billableColor = getColor(billable, true);
     let totalColor = getColor(total, false);
-    userStats += ":" + (billableColor !== "" ? billableColor + "_" : "") + "heart:" + ("      " + billable).slice(-6);
-    userStats += " / :" + (totalColor !== "" ? totalColor + "_" : "") + "heart:" + ("      " + total).slice(-6);
+    userStats += ":" + (billableColor !== "" ? billableColor + "_" : "") + "heart: " + ("00" + billable.toFixed(1)).slice(-4);
+    userStats += " / :" + (totalColor !== "" ? totalColor + "_" : "") + "heart: " + ("00" + total.toFixed(1)).slice(-4);
     userStats += " - " + user.first_name + " " + user.last_name;
     return userStats;
   })
@@ -79,22 +80,16 @@ const getTimeEntries = async (user) => {
 
     const userStats = await Promise.all(users.map(user => getTimeEntries(user)));
 
-    const url = config.SLACK_WEBHOOK_URL;
+    //const url = config.SLACK_WEBHOOK_URL;      // send to #wata
+    const url = config.SLACK_WEBHOOK_URL_TEST; // send to #test_lce
     const webhook = new IncomingWebhook(url);
     // Send the notification
-    (async () => {
-      try {
-        const message = userStats.join("\n");
-        console.log("Sending message:\n" + message);
+    const message = userStats.join("\n");
+    console.log("Sending message:\n" + message);
 
-        await webhook.send({
-          text: message,
-        });
-      } catch (err) {
-        console.error(err);
-        return err;
-      }
-    })();
+    await webhook.send({
+      text: message,
+    });
   } catch (err) {
     console.error(err);
     return err;

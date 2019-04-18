@@ -19,6 +19,7 @@
   "homepage": "https://github.com/lcech/harvest-notifier#readme",
   "dependencies": {
     "@slack/webhook": "^5.0.0",
-    "harvest": "^2.2.5"
+    "harvest": "^2.2.5",
+    "moment": "^2.24.0"
   }
 }
