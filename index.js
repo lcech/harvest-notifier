@@ -25,22 +25,29 @@ const getUsers = async () => {
   });
 };
 
-const getColor = (hours, billable) => {
+const getStatus = (hours, billable) => {
   const colors = [ "", "yellow", "green", "blue", "purple" ];
   let tresholds = [];
+  let messages = [];
   if (billable) {
     tresholds = [ 0, 10, 15, 20, 30 ];
+    messages = ["bída", "taky něco", "splněno", "slušný", "hvězdně!"]
   } else {
     tresholds = [ 0, 15, 25, 30, 40 ];
+    messages = ["prlajs", "cosi je", "celkem je", "máš", "až dost"]
   }
-  return colors[tresholds.reduce((prev, curr, index) => {
+  let index = tresholds.reduce((prev, curr, index) => {
     return hours >= curr ? index : prev;
-  })];
+  });
+  return {
+    color: colors[index],
+    message: messages[index]
+  };
 };
 
-const getTimeEntries = async (user) => {
+const getTimeEntries = async (user, startDate, endDate) => {
   return harvest.timeEntries
-  .list({ user_id: user.id, from: new Date(2019, 3, 15), to: new Date(2019, 3, 22) })
+  .list({ user_id: user.id, from: startDate.toDate(), to: endDate.toDate() })
   .then((response) => {
     const time_entries = response.time_entries;
     let userStats = "";
@@ -53,11 +60,14 @@ const getTimeEntries = async (user) => {
       }
     });
 
-    let billableColor = getColor(billable, true);
-    let totalColor = getColor(total, false);
-    userStats += ":" + (billableColor !== "" ? billableColor + "_" : "") + "heart: " + ("00" + billable.toFixed(1)).slice(-4);
-    userStats += " / :" + (totalColor !== "" ? totalColor + "_" : "") + "heart: " + ("00" + total.toFixed(1)).slice(-4);
-    userStats += " - " + user.first_name + " " + user.last_name;
+    let billableStatus = getStatus(billable, true);
+    let totalStatus = getStatus(total, false);
+    userStats += ":" + (billableStatus.color !== "" ? billableStatus.color + "_" : "") + "heart: " + ("  " + billable.toFixed(1)).slice(-4);
+    userStats += " / " + ("00" + total.toFixed(1)).slice(-4);
+    //userStats += " / :" + (totalStatus.color !== "" ? totalStatus.color + "_" : "") + "heart: " + ("00" + total.toFixed(1)).slice(-4);
+    userStats += " - *" + user.first_name + " " + user.last_name + "*";
+    //userStats += " (vykázáno " + totalStatus.message + ", v placenejch " + billableStatus.message + ")";
+    //userStats += " - https://etneteractivate.harvestapp.com/team/" + user.id + "?week_of=" + startDate.format("YYYY-MM-DD");
     return userStats;
   })
   .catch(err => {
@@ -78,13 +88,15 @@ const getTimeEntries = async (user) => {
       }
     });
 
-    const userStats = await Promise.all(users.map(user => getTimeEntries(user)));
+    const startDate = moment().startOf('week').isoWeekday(1);
+    const endDate = startDate.clone().add(7, 'days');
+    const userStats = await Promise.all(users.map(user => getTimeEntries(user, startDate, endDate)));
 
     //const url = config.SLACK_WEBHOOK_URL;      // send to #wata
     const url = config.SLACK_WEBHOOK_URL_TEST; // send to #test_lce
     const webhook = new IncomingWebhook(url);
     // Send the notification
-    const message = userStats.join("\n");
+    const message = "Statistiky za období " + startDate.format("D.M.YYYY") + " - " + endDate.format("D.M.YYYY") + "\n" + userStats.join("\n");
     console.log("Sending message:\n" + message);
 
     await webhook.send({
