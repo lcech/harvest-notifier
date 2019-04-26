@@ -4,7 +4,9 @@
   "description": "Little app to notify reported work stats from Harvest",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node index.js WATA",
+    "notify-wata": "node index.js WATA",
+    "notify-email": "node index.js EMAIL",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

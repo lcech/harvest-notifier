@@ -13,11 +13,19 @@ const harvest = new Harvest({
   }
 });
 
-const getUsers = async () => {
+const getUsersWithRole = (role) => {
   return harvest.users
   .list()
   .then((response) => {
-    return response.users;
+    const users = response.users.filter((user, index) => {
+      if (user.is_active && user.roles.indexOf(role) !== -1) {
+        return true;
+      } else {
+        return false;
+      }
+    });
+
+    return users;
   })
   .catch(err => {
     console.error("Error requesting users.", err);
@@ -28,24 +36,20 @@ const getUsers = async () => {
 const getStatus = (hours, billable) => {
   const colors = [ "", "yellow", "green", "blue", "purple" ];
   let tresholds = [];
-  let messages = [];
   if (billable) {
     tresholds = [ 0, 10, 15, 20, 30 ];
-    messages = ["bída", "taky něco", "splněno", "slušný", "hvězdně!"]
   } else {
     tresholds = [ 0, 15, 25, 30, 40 ];
-    messages = ["prlajs", "cosi je", "celkem je", "máš", "až dost"]
   }
   let index = tresholds.reduce((prev, curr, index) => {
     return hours >= curr ? index : prev;
   });
   return {
-    color: colors[index],
-    message: messages[index]
+    color: colors[index]
   };
 };
 
-const getTimeEntries = async (user, startDate, endDate) => {
+const getTimeEntries = (user, startDate, endDate) => {
   return harvest.timeEntries
   .list({ user_id: user.id, from: startDate.toDate(), to: endDate.toDate() })
   .then((response) => {
@@ -78,18 +82,11 @@ const getTimeEntries = async (user, startDate, endDate) => {
 
 (async () => {
   try {
-    let users = await getUsers();
-
-    users = users.filter((user, index) => {
-      if (user.is_active && user.roles.indexOf("WATA") !== -1) {
-        return true;
-      } else {
-        return false;
-      }
-    });
+    const users = await getUsersWithRole(process.argv[2] || "WATA");
 
     const startDate = moment().startOf('week').isoWeekday(1);
     const endDate = startDate.clone().add(7, 'days');
+
     const userStats = await Promise.all(users.map(user => getTimeEntries(user, startDate, endDate)));
 
     //const url = config.SLACK_WEBHOOK_URL;      // send to #wata
