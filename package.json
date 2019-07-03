@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js WATA",
+    "karel": "node index.js KAREL",
     "notify-wata": "node index.js WATA",
     "notify-email": "node index.js EMAIL",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -22,6 +23,7 @@
   "dependencies": {
     "@slack/webhook": "^5.0.0",
     "harvest": "^2.2.5",
-    "moment": "^2.24.0"
+    "moment": "^2.24.0",
+    "moment-timezone": "^0.5.25"
   }
 }
